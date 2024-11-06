@@ -2,5 +2,4 @@
 .DS_Store
 
 # Generated files
-build
-bundled.go
+builder.*

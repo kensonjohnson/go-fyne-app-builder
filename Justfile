@@ -1,7 +1,7 @@
 set quiet := true
 
 MAIN_PACKAGE_PATH := "."
-BINARY_NAME := "app-builder"
+BINARY_NAME := "builder"
 
 [private]
 help:
@@ -21,7 +21,7 @@ tidy:
 
 # Build binary for current OS/Arch
 build:
-  go build -o=./build/{{ BINARY_NAME }} {{ MAIN_PACKAGE_PATH }}
+  fyne package --name {{ BINARY_NAME }}
 
 # Run all go:generate directives
 generate:
