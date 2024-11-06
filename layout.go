@@ -2,16 +2,20 @@ package main
 
 import (
 	"fyne.io/fyne/v2"
+	"fyne.io/fyne/v2/theme"
 )
 
 const sideWidth = 220
 
 type appBuilderLayout struct {
 	top, left, right, content fyne.CanvasObject
+	dividers                  [3]fyne.CanvasObject
 }
 
-func newAppBuilderLayout(top, left, right, content fyne.CanvasObject) fyne.Layout {
-	return &appBuilderLayout{top: top, left: left, right: right, content: content}
+func newAppBuilderLayout(top, left, right, content fyne.CanvasObject, dividers [3]fyne.CanvasObject) fyne.Layout {
+	return &appBuilderLayout{
+		top: top, left: left, right: right, content: content, dividers: dividers,
+	}
 }
 
 func (l *appBuilderLayout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
@@ -26,6 +30,16 @@ func (l *appBuilderLayout) Layout(_ []fyne.CanvasObject, size fyne.Size) {
 
 	l.content.Move(fyne.NewPos(sideWidth, topHeight))
 	l.content.Resize(fyne.NewSize(size.Width-sideWidth*2, size.Height-topHeight))
+
+	dividerThickness := theme.SeparatorThicknessSize()
+	l.dividers[0].Move(fyne.NewPos(0, topHeight))
+	l.dividers[0].Resize(fyne.NewSize(size.Width, dividerThickness))
+
+	l.dividers[1].Move(fyne.NewPos(sideWidth, topHeight))
+	l.dividers[1].Resize(fyne.NewSize(dividerThickness, size.Height-topHeight))
+
+	l.dividers[2].Move(fyne.NewPos(size.Width-sideWidth, topHeight))
+	l.dividers[2].Resize(fyne.NewSize(dividerThickness, size.Height-topHeight))
 }
 
 func (l *appBuilderLayout) MinSize(objects []fyne.CanvasObject) fyne.Size {

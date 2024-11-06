@@ -32,5 +32,16 @@ func makeGui() fyne.CanvasObject {
 
 	// return container.NewBorder(makeBanner(), nil, left, right, content)
 	objects := []fyne.CanvasObject{content, top, left, right}
-	return container.New(newAppBuilderLayout(top, left, right, content), objects...)
+
+	dividers := [3]fyne.CanvasObject{
+		widget.NewSeparator(),
+		widget.NewSeparator(),
+		widget.NewSeparator(),
+	}
+
+	for i := 0; i < len(dividers); i++ {
+		objects = append(objects, dividers[i])
+	}
+
+	return container.New(newAppBuilderLayout(top, left, right, content, dividers), objects...)
 }
