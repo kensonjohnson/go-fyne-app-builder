@@ -8,8 +8,12 @@ help:
     just --list --unsorted
 
 # Run dev build
-run:
+run: 
   go run .
+
+# Run dev build with debug screens
+debug:
+  go run -tags debug .
 
 # Fetch and organize dependencies
 tidy:
@@ -18,3 +22,7 @@ tidy:
 # Build binary for current OS/Arch
 build:
   go build -o=./build/{{ BINARY_NAME }} {{ MAIN_PACKAGE_PATH }}
+
+# Run all go:generate directives
+generate:
+  go generate

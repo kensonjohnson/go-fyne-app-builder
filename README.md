@@ -19,5 +19,7 @@ cd go-fyne-app-builder
 
 2. Fetch needed dependencies: `just tidy` or `go mod tidy`
 
-3. Run the app: `just run` or `go run .`
+3. Generate asset bundle: `just generate` or `go generate`
+
+4. Run the app: `just run` or `go run .`
 
