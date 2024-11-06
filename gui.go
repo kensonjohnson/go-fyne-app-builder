@@ -10,6 +10,7 @@ import (
 	"fyne.io/fyne/v2/widget"
 )
 
+// Creates a stack with the toolbar on top and logo centered underneath
 func makeBanner() fyne.CanvasObject {
 	toolbar := widget.NewToolbar(
 		widget.NewToolbarAction(theme.HomeIcon(), func() {}),
@@ -30,7 +31,6 @@ func makeGui() fyne.CanvasObject {
 
 	top := makeBanner()
 
-	// return container.NewBorder(makeBanner(), nil, left, right, content)
 	objects := []fyne.CanvasObject{content, top, left, right}
 
 	dividers := [3]fyne.CanvasObject{
