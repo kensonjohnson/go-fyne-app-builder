@@ -1,6 +1,7 @@
 # MacOS
 .DS_Store
 
-# Generated files
+# Build files
 builder.*
 Builder.*
+wasm
