@@ -21,8 +21,20 @@ tidy:
 
 # Build binary for current OS/Arch
 build:
-  fyne package --name {{ BINARY_NAME }}
+  fyne package 
 
+# Build specifically for iOS simulator
+build-ios-simulator:
+  fyne package -os iossimulator
+
+# Build for web via WASM
+build-web:
+  fyne package -os web
+
+# Serve the WASM version of the app locally
+serve:
+  fyne serve
+  
 # Run all go:generate directives
 generate:
   go generate
