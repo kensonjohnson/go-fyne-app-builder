@@ -6,6 +6,7 @@ import (
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
 	"fyne.io/fyne/v2/container"
+	"fyne.io/fyne/v2/data/binding"
 	"fyne.io/fyne/v2/dialog"
 	"fyne.io/fyne/v2/theme"
 	"fyne.io/fyne/v2/widget"
@@ -13,6 +14,7 @@ import (
 
 type gui struct {
 	window    fyne.Window
+	title     binding.String
 	directory *widget.Label
 }
 
@@ -33,8 +35,8 @@ func (g *gui) makeGui() fyne.CanvasObject {
 	left := widget.NewLabel("left")
 	right := widget.NewLabel("right")
 
-	g.directory = widget.NewLabel("Welcome to the Builder App. Open a folder from the menu to get started!")
-	content := container.NewStack(canvas.NewRectangle(color.Gray{Y: 0xee}), g.directory)
+	directory := widget.NewLabelWithData(g.title)
+	content := container.NewStack(canvas.NewRectangle(color.Gray{Y: 0xee}), directory)
 
 	top := makeBanner()
 
@@ -53,7 +55,7 @@ func (g *gui) makeGui() fyne.CanvasObject {
 	return container.New(newAppBuilderLayout(top, left, right, content, dividers), objects...)
 }
 
-func (g *gui) openProject() {
+func (g *gui) openProjectDialog() {
 	dialog.ShowFolderOpen(func(dir fyne.ListableURI, err error) {
 		if err != nil {
 			dialog.ShowError(err, g.window)
@@ -64,9 +66,13 @@ func (g *gui) openProject() {
 			return
 		}
 
-		name := dir.Name()
-
-		g.window.SetTitle("App Builder: " + name)
-		g.directory.SetText(name)
+		g.openProject(dir)
 	}, g.window)
+}
+
+func (g *gui) openProject(dir fyne.ListableURI) {
+	name := dir.Name()
+
+	g.title.Set(name)
+
 }
