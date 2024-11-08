@@ -62,7 +62,7 @@ func main() {
 		ui.openProject(dir)
 	} else {
 		// No args passed in
-		ui.openProjectDialog()
+		a.Lifecycle().SetOnStarted(ui.openProjectDialog)
 	}
 
 	// Finally, create the window(s) and run the app.
