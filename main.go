@@ -62,19 +62,10 @@ func main() {
 		ui.openProject(dir)
 	} else {
 		// No args passed in
-		a.Lifecycle().SetOnStarted(ui.openProjectDialog)
+		ui.showCreate(window)
 	}
 
 	// Finally, create the window(s) and run the app.
 	// This is blocking until the app returns or errors
 	window.ShowAndRun()
-}
-
-func (ui *gui) makeMenu() *fyne.MainMenu {
-	file := fyne.NewMenu(
-		"File",
-		fyne.NewMenuItem("Open Project", ui.openProjectDialog),
-	)
-
-	return fyne.NewMainMenu(file)
 }
