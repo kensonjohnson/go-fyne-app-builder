@@ -17,9 +17,10 @@ import (
 )
 
 type gui struct {
-	window    fyne.Window
-	title     binding.String
-	directory *widget.Label
+	window fyne.Window
+	title  binding.String
+
+	fileTree binding.URITree
 }
 
 // Creates a stack with the toolbar on top and logo centered underneath
@@ -50,13 +51,50 @@ func (g *gui) makeBanner() fyne.CanvasObject {
 // column that can grow and shrink with the window.
 func (g *gui) makeGui() fyne.CanvasObject {
 
-	left := widget.NewLabel("left")
-	right := widget.NewLabel("right")
-
-	directory := widget.NewLabelWithData(g.title)
-	content := container.NewStack(canvas.NewRectangle(color.Gray{Y: 0xee}), directory)
-
 	top := g.makeBanner()
+
+	g.fileTree = binding.NewURITree()
+	files := widget.NewTreeWithData(
+		g.fileTree,
+		func(branch bool) fyne.CanvasObject {
+			return widget.NewLabel("Filename.jpg")
+		},
+		func(data binding.DataItem, branch bool, object fyne.CanvasObject) {
+			l := object.(*widget.Label)
+			u, _ := data.(binding.URI).Get()
+
+			l.SetText(u.Name())
+		},
+	)
+	left := widget.NewAccordion(
+		widget.NewAccordionItem("Files", files),
+		widget.NewAccordionItem("Sceens", widget.NewLabel("TODO Screens")),
+	)
+	left.Open(0)
+	left.MultiOpen = true
+
+	right := widget.NewRichTextFromMarkdown("## Settings")
+
+	name, _ := g.title.Get()
+	window := container.NewInnerWindow(
+		name,
+		widget.NewLabel("App preview here"),
+	)
+	window.CloseIntercept = func() {}
+
+	picker := widget.NewSelect([]string{"Desktop App", "iPhone 15 Max"}, func(s string) {})
+	picker.Selected = "Desktop App"
+
+	preview := container.NewBorder(
+		container.NewHBox(picker),
+		nil, nil, nil,
+		container.NewCenter(window),
+	)
+
+	content := container.NewStack(
+		canvas.NewRectangle(color.Gray{Y: 0xee}),
+		container.NewPadded(preview),
+	)
 
 	objects := []fyne.CanvasObject{content, top, left, right}
 
@@ -97,13 +135,6 @@ func (g *gui) openProjectDialog() {
 
 		g.openProject(dir)
 	}, g.window)
-}
-
-func (g *gui) openProject(dir fyne.ListableURI) {
-	name := dir.Name()
-
-	g.title.Set(name)
-
 }
 
 func (g *gui) showCreate(w fyne.Window) {
