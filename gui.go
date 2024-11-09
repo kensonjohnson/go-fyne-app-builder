@@ -23,15 +23,27 @@ type gui struct {
 }
 
 // Creates a stack with the toolbar on top and logo centered underneath
-func makeBanner() fyne.CanvasObject {
-	toolbar := widget.NewToolbar(
-		widget.NewToolbarAction(theme.HomeIcon(), func() {}),
-	)
+func (g *gui) makeBanner() fyne.CanvasObject {
+	title := canvas.NewText("App Creator", theme.Color(theme.ColorNameForeground))
+	title.TextSize = 14
+	title.TextStyle = fyne.TextStyle{Bold: true}
+
+	g.title.AddListener(binding.NewDataListener(func() {
+		name, _ := g.title.Get()
+		if name == "" {
+			name = "App Creator"
+		}
+		title.Text = name
+		title.Refresh()
+	}))
+
+	home := widget.NewButtonWithIcon("", theme.HomeIcon(), func() {})
+	left := container.NewHBox(home, title)
 
 	logo := canvas.NewImageFromResource(resourceLogoPng)
 	logo.FillMode = canvas.ImageFillContain
 
-	return container.NewStack(toolbar, container.NewPadded(logo))
+	return container.NewStack(container.NewPadded(left), container.NewPadded(logo))
 }
 
 // Creates a layout that has fixed sized left and right columns, and a center
@@ -44,7 +56,7 @@ func (g *gui) makeGui() fyne.CanvasObject {
 	directory := widget.NewLabelWithData(g.title)
 	content := container.NewStack(canvas.NewRectangle(color.Gray{Y: 0xee}), directory)
 
-	top := makeBanner()
+	top := g.makeBanner()
 
 	objects := []fyne.CanvasObject{content, top, left, right}
 
