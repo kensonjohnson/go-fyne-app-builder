@@ -19,6 +19,9 @@ debug:
 tidy:
   go mod tidy
 
+test:
+  go test -v ./...
+
 # Build binary for current OS/Arch
 build:
   fyne package 
