@@ -4,7 +4,6 @@ import (
 	"app-builder/internal/dialogs"
 	"app-builder/internal/editors"
 	"errors"
-	"image/color"
 	"os"
 
 	"fyne.io/fyne/v2"
@@ -73,10 +72,22 @@ func (g *gui) makeGui() fyne.CanvasObject {
 		u, err := g.fileTree.GetValue(uid)
 		if err != nil {
 			dialog.ShowError(err, g.window)
+			files.Unselect(uid)
 			return
 		}
 
 		g.openFile(u)
+		listable, err := storage.CanList(u)
+		if listable || err != nil {
+			files.Unselect(uid)
+			return
+		}
+
+		err = g.openFile(u)
+		if err != nil {
+			dialog.ShowError(err, g.window)
+			return
+		}
 	}
 
 	left := widget.NewAccordion(
@@ -88,29 +99,12 @@ func (g *gui) makeGui() fyne.CanvasObject {
 
 	right := widget.NewRichTextFromMarkdown("## Settings")
 
-	name, _ := g.title.Get()
-	window := container.NewInnerWindow(
-		name,
-		widget.NewLabel("App preview here"),
-	)
-	window.CloseIntercept = func() {}
-
-	picker := widget.NewSelect([]string{"Desktop App", "iPhone 15 Max"}, func(s string) {})
-	picker.Selected = "Desktop App"
-
-	preview := container.NewBorder(
-		container.NewHBox(picker),
-		nil, nil, nil,
-		container.NewCenter(window),
-	)
-
-	content := container.NewStack(
-		canvas.NewRectangle(color.Gray{Y: 0xee}),
-		container.NewPadded(preview),
-	)
+	home := widget.NewRichTextFromMarkdown(`# Welcome to the App Builder
+		
+Please open a file from the tree on the left`)
 
 	g.content = container.NewDocTabs(
-		container.NewTabItem("Preview", content),
+		container.NewTabItem("Home", home),
 	)
 	g.content.CloseIntercept = func(ti *container.TabItem) {
 		var uri fyne.URI
@@ -126,6 +120,19 @@ func (g *gui) makeGui() fyne.CanvasObject {
 		}
 
 		g.content.Remove(ti)
+	}
+
+	g.content.OnSelected = func(ti *container.TabItem) {
+		var u fyne.URI
+		for index, childItem := range g.openTabs {
+			if childItem == ti {
+				u = index
+			}
+
+			if u != nil {
+				files.Select(u.String())
+			}
+		}
 	}
 
 	objects := []fyne.CanvasObject{g.content, top, left, right}
@@ -242,28 +249,52 @@ func (g *gui) makeCreateDetail(wizard *dialogs.Wizard) fyne.CanvasObject {
 	return form
 }
 
-func (g *gui) openFile(u fyne.URI) {
-	listable, err := storage.CanList(u)
-	if listable || err != nil {
-		// TODO: should we unselect this item
-		return
-	}
+func (g *gui) openFile(u fyne.URI) error {
 
 	if item, ok := g.openTabs[u]; ok {
 		g.content.Select(item)
-		return
+		return nil
 	}
 
-	edit := editors.ForURI(u)
+	edit, err := editors.ForURI(u)
+	if err != nil {
+		dialog.ShowError(err, g.window)
+		return err
+	}
 
-	item := container.NewTabItem(u.Name(), edit)
+	name := u.Name()
+	item := container.NewTabItem(name, edit)
 
 	if g.openTabs == nil {
 		g.openTabs = make(map[fyne.URI]*container.TabItem)
 	}
 	g.openTabs[u] = item
 
+	for _, tab := range g.content.Items {
+		if tab.Text != name {
+			continue
+		}
+
+		// fix tab
+		for uri, child := range g.openTabs {
+			if child != tab {
+				continue
+			}
+
+			parent, _ := storage.Parent(uri)
+
+			tab.Text = parent.Name() + string(os.PathSeparator) + tab.Text
+		}
+
+		// fix item
+		parent, _ := storage.Parent(u)
+		item.Text = parent.Name() + string(os.PathSeparator) + item.Text
+		break
+	}
+
 	g.content.Append(item)
 	g.content.Select(item)
+
+	return nil
 
 }
