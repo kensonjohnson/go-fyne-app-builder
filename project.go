@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/data/binding"
@@ -71,7 +72,7 @@ require fyne.io/fyne/v2 v2.5.0
     "Truncation": 0,
     "Importance": 0
   }
-}`, name))
+}`, sanitize(name)))
 
 	list, _ := storage.ListerForURI(dir)
 
@@ -92,6 +93,15 @@ func (g *gui) openProject(dir fyne.ListableURI) {
 func addFilesToTree(dir fyne.ListableURI, tree binding.URITree, root string) {
 	items, _ := dir.List()
 	for _, uri := range items {
+		name := uri.Name()
+		if len(name) > 0 && (name[0] == '.' || name == "go.sum") {
+			continue
+		}
+		pos := strings.LastIndex(name, ".gui.go")
+		if pos != -1 && pos == len(name)-7 {
+			continue
+		}
+
 		nodeId := uri.String()
 		tree.Append(root, nodeId, uri)
 
@@ -105,4 +115,8 @@ func addFilesToTree(dir fyne.ListableURI, tree binding.URITree, root string) {
 			addFilesToTree(child, tree, nodeId)
 		}
 	}
+}
+
+func sanitize(in string) string {
+	return strings.ReplaceAll(in, " ", "_")
 }

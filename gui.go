@@ -5,6 +5,7 @@ import (
 	"app-builder/internal/editors"
 	"errors"
 	"os"
+	"strings"
 
 	"fyne.io/fyne/v2"
 	"fyne.io/fyne/v2/canvas"
@@ -23,6 +24,7 @@ type gui struct {
 	fileTree binding.URITree
 	content  *container.DocTabs
 	openTabs map[fyne.URI]*container.TabItem
+	palette  *fyne.Container
 }
 
 // Creates a stack with the toolbar on top and logo centered underneath
@@ -65,7 +67,7 @@ func (g *gui) makeGui() fyne.CanvasObject {
 			l := object.(*widget.Label)
 			u, _ := data.(binding.URI).Get()
 
-			l.SetText(u.Name())
+			l.SetText(filterName(u.Name()))
 		},
 	)
 	files.OnSelected = func(uid widget.TreeNodeID) {
@@ -97,7 +99,8 @@ func (g *gui) makeGui() fyne.CanvasObject {
 	left.Open(0)
 	left.MultiOpen = true
 
-	right := widget.NewRichTextFromMarkdown("## Settings")
+	rightTop := widget.NewRichTextFromMarkdown("## Settings")
+	g.palette = container.NewVBox(rightTop)
 
 	home := widget.NewRichTextFromMarkdown(`# Welcome to the App Builder
 		
@@ -135,7 +138,7 @@ Please open a file from the tree on the left`)
 		}
 	}
 
-	objects := []fyne.CanvasObject{g.content, top, left, right}
+	objects := []fyne.CanvasObject{g.content, top, left, g.palette}
 
 	dividers := [3]fyne.CanvasObject{
 		widget.NewSeparator(),
@@ -147,7 +150,7 @@ Please open a file from the tree on the left`)
 		objects = append(objects, dividers[i])
 	}
 
-	return container.New(newAppBuilderLayout(top, left, right, g.content, dividers), objects...)
+	return container.New(newAppBuilderLayout(top, left, g.palette, g.content, dividers), objects...)
 }
 
 // Adds options to the built in file menu for the native OS
@@ -256,13 +259,16 @@ func (g *gui) openFile(u fyne.URI) error {
 		return nil
 	}
 
-	edit, err := editors.ForURI(u)
+	edit, palette, err := editors.ForURI(u)
 	if err != nil {
-		dialog.ShowError(err, g.window)
 		return err
 	}
 
-	name := u.Name()
+	if palette != nil {
+		g.palette.Add(palette)
+	}
+
+	name := filterName(u.Name())
 	item := container.NewTabItem(name, edit)
 
 	if g.openTabs == nil {
@@ -297,4 +303,13 @@ func (g *gui) openFile(u fyne.URI) error {
 
 	return nil
 
+}
+
+func filterName(name string) string {
+	pos := strings.LastIndex(name, ".gui.json")
+	if pos != -1 && pos == len(name)-9 {
+		name = name[:len(name)-5]
+	}
+
+	return name
 }

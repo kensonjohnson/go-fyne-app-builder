@@ -14,7 +14,7 @@ import (
 func main() {
 
 	// We start by creating a Fyne App
-	a := app.New()
+	a := app.NewWithID("app-builder")
 
 	// We built a custom theme in theme.go
 	a.Settings().SetTheme(newAppBuilderTheme())
