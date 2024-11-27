@@ -27,7 +27,7 @@ func makeGUI(u fyne.URI) (fyne.CanvasObject, fyne.CanvasObject, error) {
 	}
 
 	bg := canvas.NewRectangle(theme.Color(theme.ColorNameBackground))
-	inner := container.NewStack(bg, obj)
+	inner := container.NewStack(bg, container.NewPadded(obj))
 
 	// TODO: Get project title from project type
 	name := "Preview"
@@ -54,22 +54,29 @@ func makeGUI(u fyne.URI) (fyne.CanvasObject, fyne.CanvasObject, error) {
 func makePalette(obj fyne.CanvasObject) fyne.CanvasObject {
 	th := newEditableTheme()
 	themer := container.NewThemeOverride(obj, th)
+	form := container.New(layout.NewFormLayout())
 
-	fg := newColorButton(theme.ColorNameForeground, th, func() {
-		setPreviewTheme(themer, th)
-	})
+	type updatable interface {
+		update()
+	}
 
-	bg := newColorButton(theme.ColorNameBackground, th, func() {
+	updatePreview := func() {
 		setPreviewTheme(themer, th)
-	})
+	}
+
+	updateInputs := func() {
+		for _, i := range form.Objects {
+			if b, ok := i.(updatable); ok {
+				b.update()
+			}
+		}
+	}
 
 	var light, dark *widget.Button
 	light = widget.NewButton("Light", func() {
 		th.variant = theme.VariantLight
 		setPreviewTheme(themer, th)
-		// TODO: update in a loop?
-		fg.update()
-		bg.update()
+		updateInputs()
 
 		light.Importance = widget.HighImportance
 		dark.Importance = widget.MediumImportance
@@ -83,8 +90,7 @@ func makePalette(obj fyne.CanvasObject) fyne.CanvasObject {
 		themer.Theme = th
 		themer.Refresh()
 
-		fg.update()
-		bg.update()
+		updateInputs()
 
 		light.Importance = widget.MediumImportance
 		dark.Importance = widget.HighImportance
@@ -94,13 +100,42 @@ func makePalette(obj fyne.CanvasObject) fyne.CanvasObject {
 
 	variants := container.NewGridWithColumns(2, light, dark)
 
-	form := container.New(layout.NewFormLayout(),
+	form.Objects = []fyne.CanvasObject{
 		widget.NewRichTextFromMarkdown("## Brand"), layout.NewSpacer(),
-		widget.NewLabel("Text"), fg,
-		widget.NewLabel("Background"), bg,
-	)
+		widget.NewLabel("Foreground"), newColorButton(theme.ColorNameForeground, th, updatePreview),
+		widget.NewLabel("Background"), newColorButton(theme.ColorNameBackground, th, updatePreview),
+		widget.NewLabel("Highlight"), newColorButton(theme.ColorNamePrimary, th, updatePreview),
 
-	return container.NewVBox(variants, form)
+		widget.NewRichTextFromMarkdown("## Button"), layout.NewSpacer(),
+		widget.NewLabel("Background"), newColorButton(theme.ColorNameButton, th, updatePreview),
+		widget.NewLabel("Pressed"), newColorButton(theme.ColorNamePressed, th, updatePreview),
+		widget.NewLabel("Disabled"), newColorButton(theme.ColorNameDisabledButton, th, updatePreview),
+
+		widget.NewRichTextFromMarkdown("## Widgets"), layout.NewSpacer(),
+		widget.NewLabel("Hyperlink"), newColorButton(theme.ColorNameHyperlink, th, updatePreview),
+		widget.NewLabel("Header Bg"), newColorButton(theme.ColorNameHeaderBackground, th, updatePreview),
+		widget.NewLabel("Input Bg"), newColorButton(theme.ColorNameInputBackground, th, updatePreview),
+		widget.NewLabel("Input Border"), newColorButton(theme.ColorNameInputBorder, th, updatePreview),
+		widget.NewLabel("PlaceHolder"), newColorButton(theme.ColorNamePlaceHolder, th, updatePreview),
+		widget.NewLabel("ScrollBar"), newColorButton(theme.ColorNameScrollBar, th, updatePreview),
+		widget.NewLabel("Separator"), newColorButton(theme.ColorNameSeparator, th, updatePreview),
+
+		widget.NewRichTextFromMarkdown("## State"), layout.NewSpacer(),
+		widget.NewLabel("Hover"), newColorButton(theme.ColorNameHover, th, updatePreview),
+		widget.NewLabel("Focus"), newColorButton(theme.ColorNameFocus, th, updatePreview),
+		widget.NewLabel("Selection"), newColorButton(theme.ColorNameSelection, th, updatePreview),
+		widget.NewLabel("Disabled"), newColorButton(theme.ColorNameDisabled, th, updatePreview),
+
+		widget.NewRichTextFromMarkdown("## Other"), layout.NewSpacer(),
+		widget.NewLabel("Shadow"), newColorButton(theme.ColorNameShadow, th, updatePreview),
+		widget.NewLabel("Menu Bg"), newColorButton(theme.ColorNameMenuBackground, th, updatePreview),
+		widget.NewLabel("Overlay Bg"), newColorButton(theme.ColorNameOverlayBackground, th, updatePreview),
+		widget.NewLabel("Error"), newColorButton(theme.ColorNameError, th, updatePreview),
+		widget.NewLabel("Success"), newColorButton(theme.ColorNameSuccess, th, updatePreview),
+		widget.NewLabel("Warning"), newColorButton(theme.ColorNameWarning, th, updatePreview),
+	}
+
+	return container.NewBorder(variants, nil, nil, nil, container.NewScroll(form))
 }
 
 type colorButton struct {
@@ -109,44 +144,83 @@ type colorButton struct {
 	name  fyne.ThemeColorName
 	theme *editableTheme
 
-	r    *canvas.Rectangle
-	text *widget.Label
+	rect *swatch
+	text *widget.Entry
 	fn   func()
 }
 
 func newColorButton(n fyne.ThemeColorName, th *editableTheme, fn func()) *colorButton {
 	col := th.Color(n, th.variant)
-	text := widget.NewLabel(hexForColor(col))
-	r := canvas.NewRectangle(col)
-	r.SetMinSize(fyne.NewSquareSize(text.MinSize().Height))
-	b := &colorButton{r: r, text: text, name: n, theme: th, fn: fn}
+	var rect *swatch
+
+	text := widget.NewEntry()
+	text.Text = hexForColor(col)
+	text.OnChanged = func(s string) {
+		c := colorForHex(s)
+
+		th.setColor(n, th.variant, c)
+		rect.setColor(c)
+		fn()
+	}
+
+	rect = newSwatch(col, string(n), fyne.NewSquareSize(text.MinSize().Height),
+		func(col color.Color) {
+			th.setColor(n, th.variant, col)
+			text.SetText(hexForColor(col))
+			fn()
+		})
+
+	b := &colorButton{rect: rect, text: text, name: n, theme: th, fn: fn}
 	b.ExtendBaseWidget(b)
 	return b
 }
 
 func (c *colorButton) CreateRenderer() fyne.WidgetRenderer {
-	return widget.NewSimpleRenderer(container.NewBorder(nil, nil, c.r, nil, c.text))
+	return widget.NewSimpleRenderer(container.NewBorder(nil, nil, c.rect, nil, c.text))
 }
 
-func (c *colorButton) Tapped(_ *fyne.PointEvent) {
-	dialog.ShowColorPicker("Choose Color", "Pick a color", func(col color.Color) {
+func (c *colorButton) update() {
+	col := c.theme.Color(c.name, c.theme.variant)
+	c.rect.setColor(col)
+	c.text.SetText(hexForColor(col))
+}
+
+type swatch struct {
+	widget.BaseWidget
+
+	r    *canvas.Rectangle
+	fn   func(color.Color)
+	name string
+}
+
+func newSwatch(c color.Color, name string, min fyne.Size, fn func(color.Color)) *swatch {
+	r := canvas.NewRectangle(c)
+	r.CornerRadius = theme.InputRadiusSize()
+	r.SetMinSize(min)
+	s := &swatch{r: r, fn: fn, name: name}
+	s.ExtendBaseWidget(s)
+	return s
+}
+
+func (s *swatch) CreateRenderer() fyne.WidgetRenderer {
+	return widget.NewSimpleRenderer(s.r)
+}
+
+func (s *swatch) Tapped(_ *fyne.PointEvent) {
+	title := fmt.Sprintf("Choose %s Color", s.name)
+	c := dialog.NewColorPicker(title, "", func(c color.Color) {
 		if c == nil {
 			return
 		}
 
-		c.theme.setColor(c.name, c.theme.variant, col)
-		c.update()
-		c.fn()
+		s.setColor(c)
+		s.fn(c)
 	}, fyne.CurrentApp().Driver().AllWindows()[0])
+	c.Advanced = true
+	c.Show()
 }
 
-func (c *colorButton) update() {
-	c.r.FillColor = c.theme.Color(c.name, c.theme.variant)
-	c.r.Refresh()
-	c.text.SetText(hexForColor(c.r.FillColor))
-}
-
-func hexForColor(c color.Color) string {
-	ch := color.RGBAModel.Convert(c).(color.RGBA)
-	return fmt.Sprintf("#%.2x%.2x%.2x", ch.R, ch.G, ch.B)
+func (s *swatch) setColor(c color.Color) {
+	s.r.FillColor = c
+	s.r.Refresh()
 }

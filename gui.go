@@ -100,7 +100,7 @@ func (g *gui) makeGui() fyne.CanvasObject {
 	left.MultiOpen = true
 
 	rightTop := widget.NewRichTextFromMarkdown("## Settings")
-	g.palette = container.NewVBox(rightTop)
+	g.palette = container.NewBorder(rightTop, nil, nil, nil)
 
 	home := widget.NewRichTextFromMarkdown(`# Welcome to the App Builder
 		

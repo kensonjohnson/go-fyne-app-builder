@@ -27,18 +27,18 @@ func createProject(name string, parent fyne.ListableURI) (fyne.ListableURI, erro
 		return nil, err
 	}
 
-	writer, err := storage.Writer(mod)
+	w, err := storage.Writer(mod)
 	if err != nil {
 		return nil, err
 	}
-	defer writer.Close()
+	defer w.Close()
 
-	_, err = io.WriteString(writer, fmt.Sprintf(`module %s
-
+	_, err = io.WriteString(w, fmt.Sprintf(`module %s
+	
 go 1.17
 
-require fyne.io/fyne/v2 v2.5.0
-`, name))
+require fyne.io/fyne/v2 v2.4.0
+`, sanitize(name)))
 	if err != nil {
 		return nil, err
 	}
@@ -48,34 +48,55 @@ require fyne.io/fyne/v2 v2.5.0
 		return nil, err
 	}
 
-	writer, err = storage.Writer(json)
+	w, err = storage.Writer(json)
 	if err != nil {
 		return nil, err
 	}
-	defer writer.Close()
+	defer w.Close()
 
-	_, err = io.WriteString(writer, fmt.Sprintf(`{
-  "Type": "*widget.Label",
-  "Struct": {
-    "Hidden": false,
-    "Text": "Welcome %s!",
-    "Alignment": 0,
-    "Wrapping": 0,
-    "TextStyle": {
-      "Bold": false,
-      "Italic": false,
-      "Monospace": false,
-      "Symbol": false,
-      "TabWidth": 0,
-      "Underline": false
-    },
-    "Truncation": 0,
-    "Importance": 0
+	_, err = io.WriteString(w, fmt.Sprintf(`{
+  "Object": {
+    "Type": "*fyne.Container",
+    "Layout": "VBox",
+    "Name": "",
+    "Objects": [
+      {
+        "Type": "*widget.Label",
+        "Name": "",
+        "Struct": {
+          "Hidden": false,
+          "Text": "Welcome %s!",
+          "Alignment": 0,
+          "Wrapping": 0,
+          "TextStyle": {
+            "Bold": false,
+            "Italic": false,
+            "Monospace": false,
+            "Symbol": false,
+            "TabWidth": 0
+          },
+          "Truncation": 0,
+          "Importance": 0
+        }
+      },
+      {
+        "Type": "*widget.Button",
+        "Name": "",
+        "Struct": {
+          "Hidden": false,
+          "Text": "A button",
+          "Icon": null,
+          "Importance": 0,
+          "Alignment": 0,
+          "IconPlacement": 0
+        }
+      }
+    ]
   }
-}`, sanitize(name)))
+}
+`, name))
 
 	list, _ := storage.ListerForURI(dir)
-
 	return list, err
 }
 
@@ -84,7 +105,7 @@ func (g *gui) openProject(dir fyne.ListableURI) {
 
 	g.title.Set(name)
 
-	// Empty out data before binding new project directory
+	// empty the data binding if we had a project loaded
 	g.fileTree.Set(map[string][]string{}, map[string]fyne.URI{})
 
 	addFilesToTree(dir, g.fileTree, binding.DataTreeRootID)
@@ -102,17 +123,16 @@ func addFilesToTree(dir fyne.ListableURI, tree binding.URITree, root string) {
 			continue
 		}
 
-		nodeId := uri.String()
-		tree.Append(root, nodeId, uri)
+		nodeID := uri.String()
+		tree.Append(root, nodeID, uri)
 
 		isDir, err := storage.CanList(uri)
 		if err != nil {
 			log.Println("Failed to check for listing")
 		}
-
 		if isDir {
 			child, _ := storage.ListerForURI(uri)
-			addFilesToTree(child, tree, nodeId)
+			addFilesToTree(child, tree, nodeID)
 		}
 	}
 }
